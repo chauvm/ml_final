@@ -25,7 +25,8 @@ def gaussian_fit(images):
 def multinormalpdf(muSigma, x):
         mu, Sigma = muSigma
         print "Sigma: ", Sigma
-        return np.exp(-0.5*(x-mu).T.dot(np.linalg.inv(Sigma)).dot(x-mu))/sqrt(2*np.pi)**img_size/sqrt(np.linalg.det(Sigma))
+        denom = np.sqrt(2*np.pi)**img_size/np.sqrt(np.linalg.det(Sigma))
+        return np.exp(-0.5*(x-mu).T.dot(np.linalg.inv(Sigma)).dot(x-mu))/denom
 
 
 #################################
@@ -39,7 +40,7 @@ def prob_mixture(gausses, p_vector, image):
      (think of a better name later)
     """
     # log sum of p*Prob(image comes from each Gaussian)
-    return np.log(sum([p_vector[i]*multinormalpdf(gausses[i], image) for i in range(10)]))
+    return np.log(sum([p_vector[i]*multinormalpdf(gausses[i], image) for i in range(2,10)]))
 
 ############# Gradient ###########################
 def gradient(function, gausses, p_vector, image, delta):
