@@ -4,6 +4,9 @@ Final Project
 
 import numpy as np
 import matplotlib.pyplot as pyplot
+import time
+
+t = time.time()
 sample_size = 20000
 
 #############   Read reduced images and labels  ################
@@ -17,8 +20,10 @@ img_A = np.array(np.load(f_img_A, mmap_mode='r'))
 img_B = np.array(np.load(f_img_B, mmap_mode='r'))
 img_size = len(img_A[0])**2
 
-img_train = img_A[0:1500]
-label_train = label_A[0:1500]
+img_train = img_A[0:3000]
+label_train = label_A[0:3000]
+# img_train = img_B[0:1500]
+# label_train = label_B[0:1500]
 
 ############# Fit Gaussian model #################
 def gaussian_fit(images):
@@ -75,7 +80,7 @@ def loss(mixtures):
     """
     ## image_A or img_train? img_train for now
     loss = sum([1 for i in range(len(img_train)) if generative(gausses, mixtures, img_train[i])!=label_train[i]])
-    return loss
+    return loss/(len(img_train)+0.0)
 
 ############# Training error using Square loss  #######################
 def squareloss(mixtures):
@@ -85,7 +90,7 @@ def squareloss(mixtures):
     """
     ## image_A or img_train? img_train for now
     loss = sum([(generative(gausses, mixtures, img_train[i])- label_train[i])**2 for i in range(len(img_train))])
-    return loss
+    return loss/(len(img_train)+0.0)
 
 ############# Gradient ###########################
 def gradient(function, mixtures, delta):
@@ -105,10 +110,10 @@ def normalize_mixtures(p_vector, current_loss, gradient, eta):
         Given p_vector and its gradient, return new p_vector with sum(p_vector) = 1
     """
     new_pvector = p_vector - gradient*eta
-    if squareloss(new_pvector) > current_loss:
-            new_pvector = p_vector + gradient*eta
-            if squareloss(new_pvector) > current_loss:
-                    print "Bad gradient"
+    # if squareloss(new_pvector) > current_loss:
+    #         new_pvector = p_vector + gradient*eta
+    #         if squareloss(new_pvector) > current_loss:
+    #                 print "Bad gradient"
     return new_pvector/sum(new_pvector)
 
 ############### OLD Gradient Descent ###################
@@ -136,7 +141,7 @@ def normalize_mixtures(p_vector, current_loss, gradient, eta):
 ############# Gradient Descent ###################
 squareLosses = []
 Losses = []
-def grad_desc(mixtures, delta = 0.03):
+def grad_desc(mixtures, delta = 0.006):
         """
             given (gaussian) model, init prob distribution, return new prob distribution
             compare (loss1+1)/(loss2+1), if really close to 1, stop
@@ -145,16 +150,16 @@ def grad_desc(mixtures, delta = 0.03):
         squareLosses.append(squareloss(mixtures))
         Losses.append(loss(mixtures))
         
-        for i in range(6):
+        for i in range(15):
             grad = gradient(loss, mixtures, delta)
-            mixtures = normalize_mixtures(mixtures, squareLosses[-1], grad, 0.2)
-            squareLosses.append(squareloss(mixtures))            
+            mixtures = normalize_mixtures(mixtures, Losses[-1], grad, 0.0015) #0.000001
+            #squareLosses.append(squareloss(mixtures))            
             Losses.append(loss(mixtures))
             print "Mixtures: ", mixtures
-            print "squareLosses: ", squareLosses            
+            #print "squareLosses: ", squareLosses            
             print "Losses: ", Losses
-        pyplot.plot(Losses)
-        pyplot.show()
+        # pyplot.plot(Losses)
+        # pyplot.show()
         return mixtures
 ############# Classifier #########################
 def generative(gausses,mixtures, image):
@@ -174,7 +179,7 @@ init = np.array([0.1]*10)
 ############# Execution: Train data using img_train ##########################
 
 gausses = []
-print "Number of images in training data: ", len(img_train)
+print "Number of images in training data: ", len(img_A)
 batches = []
 
 ### need to refractor this. basically you're iterating over 2000 images 10 times!
@@ -182,7 +187,7 @@ for i in range(10):
     """
         fit gaussian model for each 0<=i<=9, store in gauss
     """
-    batch = np.array([img_train[j] for j in range(len(img_train)) if label_train[j]==i])
+    batch = np.array([img_A[j] for j in range(len(img_A)) if label_A[j]==i])
     batches.append(batch.shape[0])
 
     ## gauss has 10 lists of (mean, variance, {indices of 0s: entries of mean})
@@ -190,14 +195,19 @@ for i in range(10):
 error = 0
 
 batches = np.array(batches)
-mixtures = batches/(sum(batches)+0.0)
+#mixtures = batches/(sum(batches)+0.0)
+mixtures = [0.1]*10
 print "Initial mixtures: ", mixtures
+print loss(mixtures)
 
 #### After this, we have gausses, initial mixtures and its initial loss
 #### Now use gradient descent to minimize loss i.e varying mixtures
 mixtures = grad_desc(mixtures)
 
-##for i in range(10):
-##    if generative(gausses,img_B[i])!= label_B[i]:
-##        error += 1
-##print error/(sample_size+0.0)
+for i in range(1,sample_size):
+	if generative(gausses, mixtures, img_B[i])!= label_B[i]:
+		error += 1
+	if i%500 == 0:
+		print "After ", i, " test points, error = ", error/(i+0.0)
+		print time.time()-t
+print error/(sample_size+0.0)
