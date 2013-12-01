@@ -73,8 +73,6 @@
   of the determinants that we need to compute. In our experience, a factor of
   <math|4> is sufficient for our classification task.\ 
 
-  Illustrations
-
   <section|Predictors>
 
   complete model description, parametrization
